@@ -34,7 +34,7 @@ struct ConnectionEditor: View {
           Picker("SSH host", selection: $draft.host) {
             if hosts.isEmpty { Text("No hosts found").tag("") }
             ForEach(hosts, id: \.self) { Text($0).tag($0) }
-          }.labelsHidden().frame(maxWidth: .infinity)
+          }.labelsHidden().frame(maxWidth: .infinity, alignment: .leading)
         }
       }
       .disabled(disabled)
