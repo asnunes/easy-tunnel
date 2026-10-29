@@ -127,7 +127,7 @@ fn execute(
             let listing = ListConnections { repository, hosts }.execute()?;
             Ok(Some(Snapshot {
                 saved: ConnectionsView {
-                    connections: listing.connections,
+                    connections: listing.connections.iter().map(Into::into).collect(),
                     hosts: listing.hosts,
                     host_error: listing.host_error,
                 },

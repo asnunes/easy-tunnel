@@ -12,7 +12,7 @@ impl Connect<'_> {
             .repository
             .load()?
             .into_iter()
-            .find(|c| c.id == id)
+            .find(|c| c.id() == id)
             .ok_or("Connection not found.")?;
         self.tunnels.start(&connection)
     }

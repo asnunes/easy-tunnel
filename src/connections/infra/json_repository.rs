@@ -1,3 +1,4 @@
+use super::stored_connection::StoredConnection;
 use crate::connections::domain::{Connection, ports::ConnectionRepository};
 use std::{fs, path::PathBuf};
 
@@ -18,18 +19,24 @@ impl ConnectionRepository for JsonRepository {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
             Err(error) => return Err(format!("Could not read saved connections: {error}")),
         };
-        let connections: Vec<Connection> = serde_json::from_slice(&data)
+        let connections: Vec<StoredConnection> = serde_json::from_slice(&data)
             .map_err(|error| format!("Could not parse {}: {error}", self.path.display()))?;
-        for connection in &connections {
-            connection.validate()?;
-        }
-        Ok(connections)
+        connections
+            .into_iter()
+            .map(StoredConnection::into_connection)
+            .collect()
     }
 
     fn save(&self, connections: &[Connection]) -> Result<(), String> {
         let parent = self.path.parent().ok_or("Invalid settings path")?;
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-        let data = serde_json::to_vec_pretty(connections).map_err(|e| e.to_string())?;
+        let data = serde_json::to_vec_pretty(
+            &connections
+                .iter()
+                .map(StoredConnection::from)
+                .collect::<Vec<_>>(),
+        )
+        .map_err(|e| e.to_string())?;
         fs::write(&self.path, data).map_err(|e| format!("Could not save connections: {e}"))
     }
 }
@@ -37,6 +44,17 @@ impl ConnectionRepository for JsonRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn rejects_invalid_stored_values_without_changing_the_file() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("connections.json");
+        let data = r#"[{"id":"lab","name":"Lab","sshHostAlias":"lab","forwards":[{"localPort":0,"destinationHost":"localhost","destinationPort":5432}]}]"#;
+        fs::write(&path, data).unwrap();
+        let repository = JsonRepository::new(path.clone());
+        assert!(repository.load().is_err());
+        assert_eq!(fs::read_to_string(path).unwrap(), data);
+    }
+
     #[test]
     fn saves_and_reports_corrupted_data_without_overwriting() {
         let directory = tempfile::tempdir().unwrap();

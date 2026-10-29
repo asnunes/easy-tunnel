@@ -1,3 +1,15 @@
 mod connection;
+mod connection_id;
+mod connection_name;
+mod destination_host;
+mod port;
+mod port_forward;
 pub mod ports;
-pub use connection::{Connection, PortForward};
+mod ssh_host_alias;
+pub use connection::Connection;
+pub use connection_id::ConnectionId;
+pub use connection_name::ConnectionName;
+pub use destination_host::DestinationHost;
+pub use port::Port;
+pub use port_forward::PortForward;
+pub use ssh_host_alias::SshHostAlias;

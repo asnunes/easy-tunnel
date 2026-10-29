@@ -21,14 +21,13 @@ impl Tunnels {
     }
 
     pub fn start(&mut self, connection: &Connection) -> Result<(), String> {
-        connection.validate()?;
-        if self.processes.contains_key(&connection.id) {
+        if self.processes.contains_key(connection.id()) {
             return Err("This connection is already running.".into());
         }
         let mut process = self.launcher.launch(connection)?;
         let snapshot = process.snapshot()?;
-        self.states.insert(connection.id.clone(), snapshot);
-        self.processes.insert(connection.id.clone(), process);
+        self.states.insert(connection.id().to_owned(), snapshot);
+        self.processes.insert(connection.id().to_owned(), process);
         Ok(())
     }
 

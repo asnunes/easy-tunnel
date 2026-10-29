@@ -8,7 +8,7 @@ This is a personal macOS SSH tunnel utility. Preserve the compact menu and one-r
 
 ## Architecture
 
-Follow the Farol topology: `connections` and `tunnels` have `domain`, `application`, `infra`, and `presentation`. Domain ports belong in `domain`. Use cases expose `execute`. Concrete dependencies are assembled in `src/desktop/wiring.rs`.
+Follow the Farol topology: `connections` and `tunnels` have `domain`, `application`, `infra`, and `presentation`. Domain ports belong in `domain`. Value objects validate at construction and keep their fields private. Serialization belongs in presentation DTOs or infrastructure records, never in domain types. Use cases expose `execute`. Concrete dependencies are assembled in `src/desktop/wiring.rs`.
 
 Only `src/desktop/` references Tauri. Infrastructure implements domain ports; business decisions stay in application/domain. Cross-module use cases depend on domain contracts, not another module's infrastructure. The worker owns running SSH children and publishes snapshots through desktop events.
 

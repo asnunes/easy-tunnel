@@ -38,7 +38,7 @@ impl SshProcess {
             }
         });
         Ok(Self {
-            connection_id: connection.id.clone(),
+            connection_id: connection.id().to_owned(),
             child,
             lines,
             messages: VecDeque::new(),
@@ -75,11 +75,26 @@ fn arguments(connection: &Connection) -> Vec<String> {
     .into_iter()
     .map(String::from)
     .collect();
-    for forward in &connection.forwards {
-        args.extend(["-L".into(), forward.ssh_argument()]);
+    for forward in connection.forwards() {
+        args.extend(["-L".into(), forward_argument(forward)]);
     }
-    args.push(connection.ssh_host_alias.clone());
+    args.push(connection.ssh_host_alias().as_str().into());
     args
+}
+
+fn forward_argument(forward: &crate::connections::domain::PortForward) -> String {
+    let host = forward.destination_host().as_str();
+    let host = if host.contains(':') {
+        format!("[{host}]")
+    } else {
+        host.to_owned()
+    };
+    format!(
+        "127.0.0.1:{}:{}:{}",
+        forward.local_port().get(),
+        host,
+        forward.destination_port().get()
+    )
 }
 
 struct SshProcess {
@@ -165,19 +180,32 @@ impl Drop for SshProcess {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::connections::domain::PortForward;
+    use crate::connections::domain::{
+        ConnectionId, ConnectionName, DestinationHost, Port, PortForward, SshHostAlias,
+    };
+    #[test]
+    fn formats_ipv6_destinations_for_openssh() {
+        let forward = PortForward::new(
+            Port::new(8080).unwrap(),
+            DestinationHost::parse("::1").unwrap(),
+            Port::new(80).unwrap(),
+        );
+        assert_eq!(forward_argument(&forward), "127.0.0.1:8080:[::1]:80");
+    }
+
     #[test]
     fn uses_one_foreground_process_and_local_only_forwards() {
-        let connection = Connection {
-            id: "test".into(),
-            name: "Test".into(),
-            ssh_host_alias: "lab".into(),
-            forwards: vec![PortForward {
-                local_port: 5433,
-                destination_host: "localhost".into(),
-                destination_port: 5432,
-            }],
-        };
+        let connection = Connection::new(
+            ConnectionId::parse("test").unwrap(),
+            ConnectionName::parse("Test").unwrap(),
+            SshHostAlias::parse("lab").unwrap(),
+            vec![PortForward::new(
+                Port::new(5433).unwrap(),
+                DestinationHost::parse("localhost").unwrap(),
+                Port::new(5432).unwrap(),
+            )],
+        )
+        .unwrap();
         let args = arguments(&connection);
         assert!(
             args.windows(2)

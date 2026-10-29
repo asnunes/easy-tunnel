@@ -11,7 +11,7 @@ impl RemoveConnection<'_> {
             return Err("Disconnect before deleting this connection.".into());
         }
         let mut connections = self.repository.load()?;
-        connections.retain(|c| c.id != id);
+        connections.retain(|c| c.id() != id);
         self.repository.save(&connections)
     }
 }

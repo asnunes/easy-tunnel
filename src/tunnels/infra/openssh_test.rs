@@ -1,5 +1,7 @@
 use super::*;
-use crate::connections::domain::PortForward;
+use crate::connections::domain::{
+    ConnectionId, ConnectionName, DestinationHost, Port, PortForward, SshHostAlias,
+};
 use std::{
     fs,
     io::{Read, Write},
@@ -14,16 +16,17 @@ fn forwards_real_ssh_traffic_reports_busy_ports_and_reaps_children() {
     let destination = TcpListener::bind("127.0.0.1:0").unwrap();
     let remote_port = destination.local_addr().unwrap().port();
     let local_port = free_port();
-    let connection = Connection {
-        id: "fixture".into(),
-        name: "Fixture".into(),
-        ssh_host_alias: "fixture".into(),
-        forwards: vec![PortForward {
-            local_port,
-            destination_host: "127.0.0.1".into(),
-            destination_port: remote_port,
-        }],
-    };
+    let connection = Connection::new(
+        ConnectionId::parse("fixture").unwrap(),
+        ConnectionName::parse("Fixture").unwrap(),
+        SshHostAlias::parse("fixture").unwrap(),
+        vec![PortForward::new(
+            Port::new(local_port).unwrap(),
+            DestinationHost::parse("127.0.0.1").unwrap(),
+            Port::new(remote_port).unwrap(),
+        )],
+    )
+    .unwrap();
     let mut command = Command::new("/usr/bin/ssh");
     command
         .args(["-F", fixture.config.to_str().unwrap()])
