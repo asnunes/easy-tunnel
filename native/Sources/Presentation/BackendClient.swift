@@ -1,8 +1,7 @@
 import Combine
-import Foundation
 
 protocol BackendClient: AnyObject {
-  var events: AnyPublisher<Data, Never> { get }
-  func request(_ data: Data, completion: @escaping (Result<Data, Error>) -> Void)
+  var events: AnyPublisher<[Tunnel], Never> { get }
+  func perform(_ command: DesktopCommand, completion: @escaping (Result<Snapshot, Error>) -> Void)
   func shutdown()
 }

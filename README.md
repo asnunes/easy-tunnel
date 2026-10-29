@@ -4,7 +4,7 @@
 
 A native macOS menu bar app for SSH tunnels. Pick a host from `~/.ssh/config`, save any number of local port forwards, and turn the connection on or off.
 
-The panel uses an AppKit popover with SwiftUI controls, following the system appearance, materials, and keyboard behavior. A Rust backend manages the connections and SSH processes.
+The panel uses an AppKit popover with SwiftUI controls, following the system appearance, materials, and keyboard behavior. The app is written entirely in Swift, including connection storage and SSH process management.
 
 ## Use
 
@@ -31,16 +31,14 @@ Tunnels do not start automatically when the app launches. There is no automatic 
 
 ## Develop
 
-Requires macOS 13+, Xcode Command Line Tools with Swift, Rust, and Python 3. `just` is optional.
+Requires macOS 13+ and Xcode Command Line Tools with Swift. `just` and Python 3 are only needed for the combined check command.
 
 ```sh
 native/build.sh
 open "target/release/bundle/macos/Easy Tunnel.app"
 ```
 
-Or use `just dev`. The build links the Rust static library into the native app and applies a local ad-hoc signature. No Node.js, browser runtime, or frontend dependency installation is needed.
-
-The release profile disables stripping because Rust 1.97.1 encountered an upstream [Mach-O debug stripping issue](https://github.com/rust-lang/rust/issues/157750) on the development machine.
+Or use `just dev`. The build compiles Swift sources and applies a local ad-hoc signature. There are no third-party runtime dependencies.
 
 The app is in `target/release/bundle/macos/`. The personal build has no Developer ID signing or notarization. For a lightweight GitHub release:
 
@@ -50,36 +48,32 @@ ditto -c -k --sequesterRsrc --keepParent "target/release/bundle/macos/Easy Tunne
 
 ## Architecture
 
-The project follows Farol's domain-oriented layout. The UI and backend are linked into one native process.
+The project follows Farol's domain-oriented layout within one Swift application.
 
 ```text
-native/
-  Sources/
-    EasyTunnelApp.swift  AppKit status item, system popover, and lifecycle
-    Wiring.swift         Native composition root
-    Presentation/        SwiftUI views, presentation state, and transport models
-    Infra/               Rust static-library adapter
-  Bridge/                C ABI declarations
-  Tests/                 Native draft, presentation, and bridge checks
-src/
-  desktop/
-    wiring.rs            Rust composition root
-    application/         Operation dispatch with domain values
-    infra/               Worker, C ABI, and native event callback
-    presentation/        Command and response DTOs
-  connections/
-    domain/              Entities, value objects, and ports
-    application/         Connection use cases
-    infra/               JSON storage and SSH configuration reader
-    presentation/        Connection input and output models
-  tunnels/
-    domain/              Tunnel state and process/event ports
-    application/         Connect/disconnect and state monitoring
-    infra/               OpenSSH process adapter
-    presentation/        Tunnel event models
+native/Sources/
+  EasyTunnelApp.swift     AppKit status item, popover, and lifecycle
+  Wiring.swift            Composition root
+  Connections/
+    Domain/               Connections, value objects, and repository protocols
+    Application/          Save, remove, and list use cases
+    Infra/                JSON records and SSH configuration reader
+  Tunnels/
+    Domain/               Tunnel states and process/event protocols
+    Application/          Connect, disconnect, and state monitoring
+    Infra/                OpenSSH process adapter
+  Desktop/
+    Application/          Typed operation dispatch
+    Infra/                Background queue, polling, and event publication
+  Presentation/           SwiftUI views, drafts, and presentation state
+  Infra/                  Native application menu
+  Shared/                 Application errors
+native/Tests/             Swift tests and native layout previews
 ```
 
-Native commands run off the UI thread. The Rust worker owns the application and its SSH children. `MonitorTunnels` publishes changes through a domain port; the native callback copies the event data and updates SwiftUI on the main queue. Quitting waits for Rust to stop and reap its children before releasing the backend.
+Value objects validate at construction. Domain types have no serialization behavior; JSON is used only for saved connection records. The UI calls the application with typed Swift commands and receives typed snapshots and tunnel events.
+
+The backend queue owns the SSH processes and reads their output without blocking. State changes return to the main queue through Combine. Quitting stops and waits for all owned SSH children before returning.
 
 ## Checks
 
@@ -90,11 +84,9 @@ just check
 Focused checks are also available:
 
 ```sh
-cargo test --lib
 native/test.sh
-cargo clippy --lib -- -D warnings
-cargo fmt --check
+native/build.sh
 python3 scripts/check_layers.py
 ```
 
-The SSH integration test launches a temporary local `sshd` with disposable keys. Native tests exercise Swift draft validation, presentation updates, and the actual C ABI save/load/delete flow. They do not modify your SSH config, keys, or known hosts.
+The SSH integration test launches a temporary local `sshd` with disposable keys. Tests cover value objects, JSON storage, SSH config Includes, application operations, presentation updates, real tunnel traffic, occupied ports, connection failures, and process cleanup. They do not modify your SSH config, keys, or known hosts.

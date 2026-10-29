@@ -16,13 +16,10 @@ final class ConnectionStore: ObservableObject {
 
   init(backend: BackendClient) {
     self.backend = backend
-    eventSubscription = backend.events.sink { [weak self] data in self?.receive(data) }
+    eventSubscription = backend.events.sink { [weak self] tunnels in self?.tunnels = tunnels }
   }
 
-  func refresh() {
-    guard !busy else { return }
-    perform(NativeRequest(command: "snapshot"))
-  }
+  func refresh() { perform(.snapshot) }
 
   func edit(_ connection: Connection? = nil) {
     error = nil
@@ -36,73 +33,41 @@ final class ConnectionStore: ObservableObject {
 
   func toggle(_ connection: Connection) {
     let active = tunnel(for: connection.id)?.isActive ?? false
-    perform(NativeRequest(command: active ? "disconnect" : "connect", id: connection.id))
+    perform(active ? .disconnect(connection.identifier) : .connect(connection.identifier))
   }
 
   func save(_ draft: ConnectionDraft) {
-    do {
-      perform(
-        NativeRequest(command: "save_connection", connection: try draft.input()), closeEditor: true)
-    } catch { self.error = error.localizedDescription }
+    do { perform(.save(try draft.input().connection()), closeEditor: true) } catch {
+      self.error = error.localizedDescription
+    }
   }
 
   func remove(_ id: String) {
-    perform(NativeRequest(command: "remove_connection", id: id), closeEditor: true)
+    do { perform(.remove(try ConnectionID(id)), closeEditor: true) } catch {
+      self.error = error.localizedDescription
+    }
   }
 
   func tunnel(for id: String) -> Tunnel? { tunnels.first { $0.connectionId == id } }
   func shutdown() { backend.shutdown() }
 
-  func receive(_ data: Data) {
-    do { tunnels = try JSONDecoder().decode([Tunnel].self, from: data) } catch {
-      self.error = "Could not read tunnel status: \(error.localizedDescription)"
-    }
-  }
-
-  private func perform(_ request: NativeRequest, closeEditor: Bool = false) {
+  private func perform(_ command: DesktopCommand, closeEditor: Bool = false) {
     guard !busy else { return }
     busy = true
     error = nil
-    send(request) { [weak self] response in
+    backend.perform(command) { [weak self] result in
       guard let self else { return }
-      if let error = response.error {
-        self.error = error
-        busy = false
-        loading = false
-        return
-      }
-      if closeEditor { editor = nil }
-      if let snapshot = response.snapshot {
-        apply(snapshot)
-        busy = false
-        loading = false
-        return
-      }
-      send(NativeRequest(command: "snapshot")) { [weak self] response in
-        guard let self else { return }
-        if let snapshot = response.snapshot { apply(snapshot) }
-        error = response.error
-        busy = false
-        loading = false
+      busy = false
+      loading = false
+      switch result {
+      case .success(let snapshot):
+        connections = snapshot.connections
+        hosts = snapshot.hosts
+        hostError = snapshot.hostError
+        tunnels = snapshot.tunnels
+        if closeEditor { editor = nil }
+      case .failure(let failure): error = failure.localizedDescription
       }
     }
-  }
-
-  private func send(_ request: NativeRequest, completion: @escaping (NativeResponse) -> Void) {
-    do {
-      let data = try JSONEncoder().encode(request)
-      backend.request(data) { result in
-        do { completion(try JSONDecoder().decode(NativeResponse.self, from: result.get())) } catch {
-          completion(NativeResponse(snapshot: nil, error: error.localizedDescription))
-        }
-      }
-    } catch { completion(NativeResponse(snapshot: nil, error: error.localizedDescription)) }
-  }
-
-  private func apply(_ snapshot: Snapshot) {
-    connections = snapshot.connections
-    hosts = snapshot.hosts
-    hostError = snapshot.hostError
-    tunnels = snapshot.tunnels
   }
 }

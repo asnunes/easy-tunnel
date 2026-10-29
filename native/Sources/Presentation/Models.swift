@@ -1,48 +1,26 @@
 import Foundation
 
-struct Connection: Codable, Identifiable, Equatable {
-  let id: String
-  let name: String
-  let sshHostAlias: String
-  let forwards: [PortForward]
-}
-
-struct PortForward: Codable, Equatable {
-  let localPort: Int
-  let destinationHost: String
-  let destinationPort: Int
-}
-
-struct ConnectionInput: Encodable {
+struct ConnectionInput {
   let id: String?
   let name: String
   let sshHostAlias: String
-  let forwards: [PortForward]
+  let forwards: [ForwardInput]
+
+  func connection() throws -> Connection {
+    try Connection(
+      id: ConnectionID(id ?? UUID().uuidString), name: ConnectionName(name),
+      host: SSHHostAlias(sshHostAlias), forwards: forwards.map { try $0.forward() })
+  }
 }
 
-struct Tunnel: Decodable, Equatable {
-  let connectionId: String
-  let status: String
-  let processId: Int?
-  let error: String?
+struct ForwardInput {
+  let localPort: Int
+  let destinationHost: String
+  let destinationPort: Int
 
-  var isActive: Bool { status == "connected" || status == "connecting" }
-}
-
-struct Snapshot: Decodable {
-  let connections: [Connection]
-  let hosts: [String]
-  let hostError: String?
-  let tunnels: [Tunnel]
-}
-
-struct NativeResponse: Decodable {
-  let snapshot: Snapshot?
-  let error: String?
-}
-
-struct NativeRequest: Encodable {
-  let command: String
-  var id: String? = nil
-  var connection: ConnectionInput? = nil
+  func forward() throws -> PortForward {
+    try PortForward(
+      local: Port(localPort), destination: DestinationHost(destinationHost),
+      remote: Port(destinationPort))
+  }
 }

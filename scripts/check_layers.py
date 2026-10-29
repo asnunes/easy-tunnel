@@ -2,21 +2,19 @@ from pathlib import Path
 import re
 
 violations = []
-for path in Path("src").rglob("*.rs"):
-    source = path.read_text()
-    production = source.split("#[cfg(test)]", 1)[0]
-    if "domain" in path.parts and re.search(r"\b(?:serde|serde_json|Serialize|Deserialize)\b", source):
-        violations.append(f"{path}: serialization belongs at the boundary")
-    if "application" in path.parts:
-        if re.search(r"\b(?:serde|serde_json|Serialize|Deserialize|c_char|CStr)\b", production):
-            violations.append(f"{path}: application must not depend on transport or serialization")
-        if re.search(r"\b(?:infra|presentation)\s*::", production):
-            violations.append(f"{path}: application must not depend on outer adapters")
-    if path == Path("src/desktop/wiring.rs") and re.search(r"\b(?:thread|mpsc|serde|Serialize|Deserialize)\b", production):
-        violations.append(f"{path}: wiring only composes dependencies")
 for path in Path("native/Sources").rglob("*.swift"):
-    if "Infra" not in path.parts and re.search(r"\beasy_tunnel_(?:create|request|free_string|destroy)\s*\(", path.read_text()):
-        violations.append(f"{path}: the C bridge belongs in native infrastructure")
+    source = path.read_text()
+    if "Domain" in path.parts:
+        if re.search(r"\b(Codable|Encodable|Decodable|JSONEncoder|JSONDecoder|SwiftUI|AppKit|Combine|Process|DispatchQueue)\b", source):
+            violations.append(f"{path}: domain must not depend on UI, serialization, or process infrastructure")
+    if "Application" in path.parts:
+        if re.search(r"\b(JSONEncoder|JSONDecoder|SwiftUI|AppKit|Combine|DispatchQueue|Process)\b", source):
+            violations.append(f"{path}: application must stay independent of outer adapters")
+    if "Presentation" in path.parts:
+        if re.search(r"\b(Process|JSONEncoder|JSONDecoder|FileManager)\b", source):
+            violations.append(f"{path}: presentation uses typed backend operations")
+    if path.name == "Wiring.swift" and re.search(r"\b(DispatchQueue|DispatchSource|JSONEncoder|JSONDecoder)\b", source):
+        violations.append(f"{path}: wiring only composes dependencies")
 if violations:
     raise SystemExit("Layer boundary violations: " + ", ".join(violations))
 print("Layer boundaries checked.")

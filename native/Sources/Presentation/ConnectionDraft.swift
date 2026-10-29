@@ -39,13 +39,13 @@ struct ForwardDraft: Identifiable {
     destinationPort = String(forward.destinationPort)
   }
 
-  func input() throws -> PortForward {
+  func input() throws -> ForwardInput {
     guard let local = Int(localPort), let remote = Int(destinationPort),
       (1...65535).contains(local), (1...65535).contains(remote)
     else {
       throw DraftError.invalid("Ports must be between 1 and 65535.")
     }
-    return PortForward(
+    return ForwardInput(
       localPort: local,
       destinationHost: destinationHost.trimmingCharacters(in: .whitespacesAndNewlines),
       destinationPort: remote)

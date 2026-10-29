@@ -4,23 +4,23 @@ Keep code, comments, UI, documentation, and commit messages in English.
 
 ## Scope
 
-This is a personal macOS SSH tunnel utility. Preserve the compact menu and one-row-per-forward editor. Do not add reconnection, migration, rollout, locking, or update infrastructure without a request.
+This is a personal macOS SSH tunnel utility written entirely in Swift. Preserve the compact menu and one-row-per-forward editor. Do not add reconnection, migration, rollout, locking, or update infrastructure without a request.
 
 ## Architecture
 
-The UI is native SwiftUI/AppKit in `native/`; do not recreate macOS controls or materials with web rendering. Rust is a static library containing the backend.
+Use native SwiftUI/AppKit controls and materials. All application code lives in `native/Sources`.
 
-Follow the Farol topology: `connections` and `tunnels` have `domain`, `application`, `infra`, and `presentation`. Domain ports belong in `domain`. Value objects validate at construction and keep their fields private. Serialization belongs in presentation DTOs or infrastructure records, never in domain types. Use cases expose `execute`. Concrete Rust dependencies are assembled in `src/desktop/wiring.rs`.
+Follow the Farol topology: `Connections` and `Tunnels` have `Domain`, `Application`, and `Infra`. Domain protocols belong in `Domain`. Value objects validate at construction and keep stored values private. Domain types do not conform to Codable; persistence records belong in infrastructure. Use cases expose `execute`.
 
-Desktop presentation parses inputs and maps DTOs; desktop application dispatches use cases without C ABI types, channels, or serialization. Desktop infrastructure owns the worker, callback adapter, and C boundary. Tunnel monitoring compares domain snapshots in application and publishes through the domain event port. Keep wiring limited to dependency composition.
+`Desktop/Application` dispatches typed operations. `Desktop/Infra` owns the background queue, timer, and event publisher. Process handles, file IO and SSH config parsing stay in infrastructure. Application and domain do not import UI, Combine, or dispatch APIs. `Presentation` holds native views, drafts and presentation state; its backend interface passes Swift values, not JSON.
 
-Native SwiftUI views and their presentation state live in `native/Sources/Presentation`. The C bridge belongs in `native/Sources/Infra`. `Wiring` injects the backend into the presentation store. Native callbacks copy their borrowed strings before returning and update presentation state on the main queue. The Rust worker owns all SSH children and is shut down before the backend is freed.
+`Wiring.swift` is the composition root. It injects repositories, host discovery, process launcher, event sink, application, and backend. The backend queue owns every SSH process and polls their nonblocking output. It delivers results on the main queue. Quitting waits for all owned SSH processes to stop.
 
 A file opens with its main exported item after imports. Helpers and private types follow it. Prefer early exits.
 
 ## Verification
 
-Use focused Rust and native tests. `just check` checks architecture, Rust tests, Swift presentation/bridge tests, formatting, clippy, and the signed native app build. The local SSH integration test uses disposable keys and a temporary sshd; never substitute a user's remote host as a fixture.
+Use focused Swift tests. `just check` checks architecture, Swift tests, and the signed app build. The local SSH integration test uses disposable keys and a temporary sshd; never substitute a user's remote host as a fixture.
 
 ## Design context
 

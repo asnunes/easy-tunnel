@@ -19,7 +19,7 @@ struct ConnectionRow: View {
         }
         .buttonStyle(.plain)
         .help("Edit \(connection.name)")
-        if tunnel?.status == "connecting" {
+        if tunnel?.status == .connecting {
           ProgressView().controlSize(.mini).accessibilityLabel("Connecting")
         }
         Toggle(
