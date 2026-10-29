@@ -1,3 +1,5 @@
+<img src="icons/icon.png" alt="Easy Tunnel logo" width="128" height="128">
+
 # Easy Tunnel
 
 A small macOS menu bar app for SSH tunnels. Pick a host from `~/.ssh/config`, save any number of local port forwards, and turn the connection on or off.
