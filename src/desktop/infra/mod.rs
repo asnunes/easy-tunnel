@@ -1,5 +1,3 @@
-pub mod panel;
-pub mod runtime;
-pub mod tray;
+mod ffi;
 pub mod tunnel_events;
 pub mod worker;

@@ -1,6 +1,9 @@
 use super::{
     application::desktop_application::DesktopApplication,
-    infra::{tunnel_events::TauriTunnelEvents, worker::DesktopWorker},
+    infra::{
+        tunnel_events::{EventCallback, NativeTunnelEvents},
+        worker::DesktopWorker,
+    },
 };
 use crate::{
     connections::infra::{json_repository::JsonRepository, ssh_config::SshConfig},
@@ -9,15 +12,17 @@ use crate::{
         infra::openssh::OpenSsh,
     },
 };
-use tauri::Manager;
+use std::path::PathBuf;
 
-pub fn build(app: &tauri::AppHandle) -> Result<DesktopWorker, Box<dyn std::error::Error>> {
-    let repository = Box::new(JsonRepository::new(
-        app.path().app_data_dir()?.join("connections.json"),
-    ));
-    let hosts = Box::new(SshConfig::new(app.path().home_dir()?));
+pub fn build(
+    data_dir: PathBuf,
+    home_dir: PathBuf,
+    callback: Option<EventCallback>,
+) -> DesktopWorker {
+    let repository = Box::new(JsonRepository::new(data_dir.join("connections.json")));
+    let hosts = Box::new(SshConfig::new(home_dir));
     let tunnels = Tunnels::new(Box::new(OpenSsh));
-    let monitor = MonitorTunnels::new(Box::new(TauriTunnelEvents::new(app.clone())));
+    let monitor = MonitorTunnels::new(Box::new(NativeTunnelEvents::new(callback)));
     let application = DesktopApplication::new(repository, hosts, tunnels, monitor);
-    Ok(DesktopWorker::start(application))
+    DesktopWorker::start(application)
 }

@@ -33,11 +33,8 @@ impl DesktopWorker {
         Self { sender }
     }
 
-    pub async fn request(&self, command: Command) -> Result<Outcome, String> {
-        let worker = self.clone();
-        tauri::async_runtime::spawn_blocking(move || worker.exchange(command))
-            .await
-            .map_err(|error| error.to_string())?
+    pub fn request(&self, command: Command) -> Result<Outcome, String> {
+        self.exchange(command)
     }
 
     pub fn shutdown(&self) {

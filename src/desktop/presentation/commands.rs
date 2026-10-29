@@ -1,61 +1,27 @@
-use super::snapshot::Snapshot;
-use crate::connections::domain::ConnectionId;
-use crate::connections::presentation::ConnectionInput;
-use crate::desktop::{
-    application::desktop_application::{Command, Outcome},
-    infra::worker::DesktopWorker,
+use crate::{
+    connections::{domain::ConnectionId, presentation::ConnectionInput},
+    desktop::application::desktop_application::Command,
 };
-use tauri::{State, WebviewWindow};
+use serde::Deserialize;
 
-#[tauri::command]
-pub async fn snapshot(state: State<'_, DesktopWorker>) -> Result<Snapshot, String> {
-    match state.request(Command::Snapshot).await? {
-        Outcome::Snapshot(snapshot) => Ok(snapshot.into()),
-        Outcome::Complete => Err("No snapshot returned.".into()),
+#[derive(Deserialize)]
+#[serde(tag = "command", rename_all = "snake_case")]
+pub enum NativeCommand {
+    Snapshot,
+    SaveConnection { connection: ConnectionInput },
+    RemoveConnection { id: String },
+    Connect { id: String },
+    Disconnect { id: String },
+}
+
+impl NativeCommand {
+    pub fn into_command(self) -> Result<Command, String> {
+        match self {
+            Self::Snapshot => Ok(Command::Snapshot),
+            Self::SaveConnection { connection } => Ok(Command::Save(connection.into_connection()?)),
+            Self::RemoveConnection { id } => Ok(Command::Remove(ConnectionId::parse(&id)?)),
+            Self::Connect { id } => Ok(Command::Connect(ConnectionId::parse(&id)?)),
+            Self::Disconnect { id } => Ok(Command::Disconnect(ConnectionId::parse(&id)?)),
+        }
     }
-}
-
-#[tauri::command]
-pub async fn save_connection(
-    state: State<'_, DesktopWorker>,
-    connection: ConnectionInput,
-) -> Result<(), String> {
-    state
-        .request(Command::Save(connection.into_connection()?))
-        .await
-        .map(|_| ())
-}
-
-#[tauri::command]
-pub async fn remove_connection(state: State<'_, DesktopWorker>, id: String) -> Result<(), String> {
-    state
-        .request(Command::Remove(ConnectionId::parse(&id)?))
-        .await
-        .map(|_| ())
-}
-
-#[tauri::command]
-pub async fn connect(state: State<'_, DesktopWorker>, id: String) -> Result<(), String> {
-    state
-        .request(Command::Connect(ConnectionId::parse(&id)?))
-        .await
-        .map(|_| ())
-}
-
-#[tauri::command]
-pub async fn disconnect(state: State<'_, DesktopWorker>, id: String) -> Result<(), String> {
-    state
-        .request(Command::Disconnect(ConnectionId::parse(&id)?))
-        .await
-        .map(|_| ())
-}
-
-#[tauri::command]
-pub fn resize_panel(window: WebviewWindow, editing: bool, height: f64) -> Result<(), String> {
-    crate::desktop::infra::panel::resize(window, editing, height)
-}
-
-#[tauri::command]
-pub fn quit(app: tauri::AppHandle) {
-    app.exit(0);
 }

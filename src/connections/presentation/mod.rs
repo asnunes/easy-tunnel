@@ -92,7 +92,7 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn maps_web_dtos_to_valid_domain_values_and_back() {
+    fn maps_transport_dtos_to_valid_domain_values_and_back() {
         let value = json!({"id":"lab","name":"Lab","sshHostAlias":"lab","forwards":[{"localPort":5433,"destinationHost":"localhost","destinationPort":5432}]});
         let input: ConnectionInput = serde_json::from_value(value.clone()).unwrap();
         let connection = input.into_connection().unwrap();
