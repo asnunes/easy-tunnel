@@ -9,7 +9,9 @@ pub fn install(app: &tauri::App) -> tauri::Result<()> {
     let quit = MenuItem::with_id(app, "quit", "Quit Easy Tunnel", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&quit])?;
     let tray = TrayIconBuilder::new()
-        .icon(Image::from_bytes(include_bytes!("../../icons/tray.png"))?)
+        .icon(Image::from_bytes(include_bytes!(
+            "../../../icons/tray.png"
+        ))?)
         .icon_as_template(true)
         .tooltip("Easy Tunnel")
         .menu(&menu)

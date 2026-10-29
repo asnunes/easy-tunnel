@@ -24,3 +24,7 @@ pub trait TunnelProcess: Send {
 pub trait TunnelLauncher: Send {
     fn launch(&self, connection: &Connection) -> Result<Box<dyn TunnelProcess>, String>;
 }
+
+pub trait TunnelEvents: Send {
+    fn changed(&self, tunnels: &[Tunnel]);
+}

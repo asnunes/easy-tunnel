@@ -54,7 +54,11 @@ The project follows Farol's domain-oriented layout. Rust lives at the root and t
 
 ```text
 src/
-  desktop/       Tauri commands, tray, events, and composition root
+  desktop/
+    wiring.rs    Composition root only
+    application/ Operation dispatch with domain values and application results
+    infra/       Worker thread, Tauri lifecycle, tray, panel, and event adapter
+    presentation/ Tauri commands and web DTOs
   connections/   Saved connections, port mappings, and SSH host discovery
     domain/      Entities and ports
     application/ Use cases
@@ -62,7 +66,7 @@ src/
     presentation/ Input and output models
   tunnels/       Running SSH processes
     domain/      Tunnel state and process ports
-    application/ Connect/disconnect use cases and execution service
+    application/ Connect/disconnect, state monitoring, and execution service
     infra/       OpenSSH process adapter
     presentation/ Tunnel event models
 web/src/
@@ -73,7 +77,9 @@ web/src/
 
 `desktop/wiring.rs` constructs concrete dependencies. Tauri handlers translate input and invoke application use cases. The tunnel module consumes the connection domain's repository contract; connections depend on an activity port to prevent edits to a running tunnel.
 
-A worker thread owns the repository and SSH children. Desktop requests pass through a channel, and tunnel state changes return through Tauri events. No process handle or filesystem access is exposed to the webview. Dropping the worker's processes on normal app exit kills and reaps its SSH children.
+The desktop application has no Tauri, channel, or serialization dependencies. Commands convert web input to domain values before dispatch and map application results to DTOs on return. `MonitorTunnels` compares domain snapshots and publishes changes through the `TunnelEvents` port; the Tauri adapter handles the event payload.
+
+A worker thread owns the application and its SSH children. Desktop requests pass through a channel, and tunnel state changes return through Tauri events. No process handle or filesystem access is exposed to the webview. Dropping the worker's processes on normal app exit kills and reaps its SSH children.
 
 ## Checks
 
