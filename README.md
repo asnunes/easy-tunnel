@@ -2,11 +2,13 @@
 
 # Easy Tunnel
 
-A small macOS menu bar app for SSH tunnels. Pick a host from `~/.ssh/config`, save any number of local port forwards, and turn the connection on or off.
+A native macOS menu bar app for SSH tunnels. Pick a host from `~/.ssh/config`, save any number of local port forwards, and turn the connection on or off.
+
+The panel uses a declarative SwiftUI App and MenuBarExtra with native controls, following the system appearance, materials, and keyboard behavior. The app is written entirely in Swift, including connection storage and SSH process management.
 
 ## Use
 
-Open **Easy Tunnel.app**. Click its menu bar icon to show or hide the panel.
+Open **Easy Tunnel.app**. Click its menu bar icon to show or hide the panel. The app does not programmatically open the panel on launch or reopen.
 
 - **Add connection** selects an SSH host and its port mappings.
 - The switch starts or stops all mappings for that connection in one SSH process.
@@ -29,22 +31,16 @@ Tunnels do not start automatically when the app launches. There is no automatic 
 
 ## Develop
 
-Requires macOS 12+, Xcode Command Line Tools, Rust, and Node.js with npm.
+Requires macOS 13+ and Xcode Command Line Tools with Swift. `just` and Python 3 are only needed for the combined check command.
 
 ```sh
-npm --prefix web ci
-npm --prefix web run desktop -- dev
+native/build.sh
+open "target/release/bundle/macos/Easy Tunnel.app"
 ```
 
-Build a local app:
+Or use `just dev`. The build compiles Swift sources and applies a local ad-hoc signature. There are no third-party runtime dependencies.
 
-```sh
-npm --prefix web run desktop -- build
-```
-
-On this machine, Rust 1.97.1 encountered the upstream [Mach-O debug stripping issue](https://github.com/rust-lang/rust/issues/157750). The release profile disables stripping so the build works with that toolchain.
-
-The app is in `target/release/bundle/macos/`. The personal build has no Developer ID signing or notarization. For a lightweight GitHub release, zip the app:
+The app is in `target/release/bundle/macos/`. The personal build has no Developer ID signing or notarization. For a lightweight GitHub release:
 
 ```sh
 ditto -c -k --sequesterRsrc --keepParent "target/release/bundle/macos/Easy Tunnel.app" "target/release/bundle/Easy-Tunnel-macos.zip"
@@ -52,36 +48,32 @@ ditto -c -k --sequesterRsrc --keepParent "target/release/bundle/macos/Easy Tunne
 
 ## Architecture
 
-The project follows Farol's domain-oriented layout. Rust lives at the root and the React/TypeScript frontend lives in `web/`.
+The project follows Farol's domain-oriented layout within one Swift application.
 
 ```text
-src/
-  desktop/
-    wiring.rs    Composition root only
-    application/ Operation dispatch with domain values and application results
-    infra/       Worker thread, Tauri lifecycle, tray, panel, and event adapter
-    presentation/ Tauri commands and web DTOs
-  connections/   Saved connections, port mappings, and SSH host discovery
-    domain/      Entities and ports
-    application/ Use cases
-    infra/       JSON storage and SSH configuration reader
-    presentation/ Input and output models
-  tunnels/       Running SSH processes
-    domain/      Tunnel state and process ports
-    application/ Connect/disconnect, state monitoring, and execution service
-    infra/       OpenSSH process adapter
-    presentation/ Tunnel event models
-web/src/
-  connections/   Compact list and connection editor
-  hooks/         UI state and event subscription
-  api.ts         Typed Tauri boundary
+native/Sources/
+  EasyTunnelApp.swift     SwiftUI App, MenuBarExtra, and termination lifecycle
+  Wiring.swift            Composition root
+  Connections/
+    Domain/               Connections, value objects, and repository protocols
+    Application/          Save, remove, and list use cases
+    Infra/                JSON records and SSH configuration reader
+  Tunnels/
+    Domain/               Tunnel states and process/event protocols
+    Application/          Connect, disconnect, and state monitoring
+    Infra/                OpenSSH process adapter
+  Desktop/
+    Application/          Typed operation dispatch
+    Infra/                Background queue, polling, and event publication
+  Presentation/           SwiftUI views, drafts, and presentation state
+  Infra/                  Native application menu
+  Shared/                 Application errors
+native/Tests/             Swift tests and native layout previews
 ```
 
-`desktop/wiring.rs` constructs concrete dependencies. Tauri handlers translate input and invoke application use cases. The tunnel module consumes the connection domain's repository contract; connections depend on an activity port to prevent edits to a running tunnel.
+Value objects validate at construction. Domain types have no serialization behavior; JSON is used only for saved connection records. The UI calls the application with typed Swift commands and receives typed snapshots and tunnel events.
 
-The desktop application has no Tauri, channel, or serialization dependencies. Commands convert web input to domain values before dispatch and map application results to DTOs on return. `MonitorTunnels` compares domain snapshots and publishes changes through the `TunnelEvents` port; the Tauri adapter handles the event payload.
-
-A worker thread owns the application and its SSH children. Desktop requests pass through a channel, and tunnel state changes return through Tauri events. No process handle or filesystem access is exposed to the webview. Dropping the worker's processes on normal app exit kills and reaps its SSH children.
+The backend queue owns the SSH processes and reads their output without blocking. State changes return to the main queue through Combine. Quitting stops and waits for all owned SSH children before returning.
 
 ## Checks
 
@@ -89,14 +81,12 @@ A worker thread owns the application and its SSH children. Desktop requests pass
 just check
 ```
 
-Or run focused checks directly:
+Focused checks are also available:
 
 ```sh
-cargo test --lib
-cargo clippy --lib -- -D warnings
-cargo fmt --check
-npm --prefix web test
-npm --prefix web run build
+native/test.sh
+native/build.sh
+python3 scripts/check_layers.py
 ```
 
-The SSH integration test launches a temporary local `sshd` with disposable keys. It verifies forwarded traffic, an occupied local port, and process cleanup without touching your SSH config, keys, or known hosts.
+The SSH integration test launches a temporary local `sshd` with disposable keys. Tests cover value objects, JSON storage, SSH config Includes, application operations, presentation updates, real tunnel traffic, occupied ports, connection failures, and process cleanup. They do not modify your SSH config, keys, or known hosts.
