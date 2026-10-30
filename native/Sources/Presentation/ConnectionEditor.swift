@@ -27,6 +27,7 @@ struct ConnectionEditor: View {
       HStack(alignment: .top, spacing: 12) {
         VStack(alignment: .leading, spacing: 4) {
           Text("Name").font(.caption).foregroundStyle(.secondary)
+            .frame(height: 20)
           TextField("Home lab", text: $draft.name).textFieldStyle(.roundedBorder)
             .accessibilityLabel("Connection name")
         }
@@ -55,6 +56,7 @@ struct ConnectionEditor: View {
               }
           }
           .font(.caption).foregroundStyle(.secondary)
+          .frame(height: 20)
           Picker("SSH host", selection: $draft.host) {
             if hosts.isEmpty { Text("No hosts found").tag("") }
             ForEach(hosts, id: \.self) { Text($0).tag($0) }
