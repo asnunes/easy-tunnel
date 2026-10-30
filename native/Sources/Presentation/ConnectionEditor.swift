@@ -78,7 +78,12 @@ struct ConnectionEditor: View {
       Divider()
       HStack {
         if let id = draft.connectionID {
-          Button("Delete", role: .destructive) { confirmingDelete = true }
+          Button(role: .destructive) {
+            confirmingDelete = true
+          } label: {
+            Label("Delete connection", systemImage: "trash")
+              .labelStyle(.iconOnly)
+          }
             .buttonStyle(.borderless).disabled(store.busy || active)
             .help(active ? "Disconnect this tunnel before deleting it." : "Delete saved connection")
             .confirmationDialog("Delete \(draft.name)?", isPresented: $confirmingDelete) {
