@@ -10,3 +10,8 @@ protocol HostSource {
 protocol ConnectionActivity {
   func isRunning(_ id: ConnectionID) -> Bool
 }
+
+protocol ConnectionRuntime: ConnectionActivity {
+  func start(_ connection: Connection) throws
+  func stop(_ id: ConnectionID)
+}

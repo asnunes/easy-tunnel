@@ -12,7 +12,7 @@ Open **Easy Tunnel.app**. Click its menu bar icon to show or hide the panel. The
 
 - **Add connection** selects an SSH host and its port mappings.
 - The switch starts or stops all mappings for that connection in one SSH process.
-- Click a connection name to edit it. Disconnect first to change or delete it.
+- Click a connection name to edit it, even while connected. **Save and reconnect** disconnects the active tunnel and starts it with the saved changes. Cancel leaves it running unchanged. Disconnect before deleting a connection.
 - Closing the panel leaves tunnels running. **Quit Easy Tunnel** stops them.
 
 Set up and verify the host in Terminal first (`ssh your-host`). Accept its host key there and load passphrase-protected keys into your SSH agent. Easy Tunnel uses `/usr/bin/ssh`, public-key authentication, and the existing SSH configuration; it does not store or prompt for passwords or private keys.

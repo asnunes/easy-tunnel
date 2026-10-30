@@ -112,6 +112,43 @@ enum OpenSSHTests {
         Darwin.close(socket)
       }
     }
+    try test("Saving and reconnecting an active SSH tunnel applies its new local port") {
+      let fixture = try SSHFixture()
+      let destination = try ListeningSocket()
+      let repository = JSONConnectionRepository(
+        file: fixture.directory.appendingPathComponent("connections.json"))
+      let tunnels = Tunnels(launcher: OpenSSH(configurationFile: fixture.config))
+      let application = DesktopApplication(
+        repository: repository, hosts: SSHConfig(home: fixture.directory), tunnels: tunnels,
+        monitor: MonitorTunnels(events: MainQueueTunnelEvents()))
+      defer { application.shutdown() }
+      let original = try fixtureConnection(
+        localPort: ListeningSocket.freePort(), destination: "127.0.0.1",
+        remotePort: destination.port)
+      _ = try application.execute(.save(original))
+      _ = try application.execute(.connect(original.identifier))
+      let oldState = try waitForConnected(tunnels)
+      let updated = try fixtureConnection(
+        localPort: ListeningSocket.freePort(), destination: "127.0.0.1",
+        remotePort: destination.port)
+      _ = try application.execute(.saveAndReconnect(updated))
+      let newState = try waitForConnected(tunnels)
+      try expect(newState.processId != oldState.processId)
+      try expect(repository.load() == [updated])
+      try expectFailure {
+        let socket = try connectedSocket(port: original.forwards[0].localPort)
+        Darwin.close(socket)
+      }
+      let client = try connectedSocket(port: updated.forwards[0].localPort)
+      defer { Darwin.close(client) }
+      try expect(Darwin.write(client, "updated", 7) == 7)
+      let server = Darwin.accept(destination.descriptor, nil, nil)
+      guard server >= 0 else { throw AppError("Updated forward did not reach destination") }
+      defer { Darwin.close(server) }
+      setReadTimeout(server)
+      var message = [UInt8](repeating: 0, count: 7)
+      try expect(Darwin.read(server, &message, 7) == 7 && message == Array("updated".utf8))
+    }
     try test("SSH connection failures surface as errors instead of connected states") {
       let fixture = try SSHFixture()
       let connection = try fixtureConnection(localPort: ListeningSocket.freePort())
@@ -121,6 +158,18 @@ enum OpenSSHTests {
       let failure = try wait(process, for: .failed)
       try expect(failure.error?.contains("Connection refused") == true)
     }
+  }
+
+  private static func waitForConnected(_ tunnels: Tunnels) throws -> Tunnel {
+    let deadline = Date().addingTimeInterval(8)
+    while Date() < deadline {
+      if let state = tunnels.snapshots().first {
+        if state.status == .connected { return state }
+        if state.status == .failed { throw AppError(state.error ?? "SSH failed") }
+      }
+      Thread.sleep(forTimeInterval: 0.02)
+    }
+    throw AppError("Timed out waiting for the updated tunnel")
   }
 
   private static func perform(_ backend: SwiftBackend, _ command: DesktopCommand) throws -> Snapshot

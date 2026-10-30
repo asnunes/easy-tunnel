@@ -17,7 +17,10 @@ final class DesktopApplication {
     switch command {
     case .snapshot: break
     case .save(let connection):
-      try SaveConnection(repository: repository, activity: tunnels).execute(connection)
+      try SaveConnection(repository: repository, runtime: tunnels).execute(connection)
+    case .saveAndReconnect(let connection):
+      try SaveConnection(repository: repository, runtime: tunnels).execute(
+        connection, reconnect: true)
     case .remove(let id):
       try RemoveConnection(repository: repository, activity: tunnels).execute(id)
     case .connect(let id): try Connect(repository: repository, tunnels: tunnels).execute(id)
@@ -36,6 +39,7 @@ final class DesktopApplication {
 enum DesktopCommand {
   case snapshot
   case save(Connection)
+  case saveAndReconnect(Connection)
   case remove(ConnectionID)
   case connect(ConnectionID)
   case disconnect(ConnectionID)

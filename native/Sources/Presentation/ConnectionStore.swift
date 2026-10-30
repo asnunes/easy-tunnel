@@ -37,7 +37,11 @@ final class ConnectionStore: ObservableObject {
   }
 
   func save(_ draft: ConnectionDraft) {
-    do { perform(.save(try draft.input().connection()), closeEditor: true) } catch {
+    do {
+      let connection = try draft.input().connection()
+      let active = tunnel(for: connection.id)?.isActive ?? false
+      perform(active ? .saveAndReconnect(connection) : .save(connection), closeEditor: true)
+    } catch {
       self.error = error.localizedDescription
     }
   }

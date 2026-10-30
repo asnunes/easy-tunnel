@@ -37,13 +37,13 @@ struct ConnectionEditor: View {
           }.labelsHidden().frame(maxWidth: .infinity, alignment: .leading)
         }
       }
-      .disabled(disabled)
+      .disabled(store.busy)
       if hosts.isEmpty {
         Text("Add a named Host to ~/.ssh/config, then refresh the host list.")
           .font(.caption).foregroundStyle(.secondary)
       }
       if active {
-        Text("Disconnect this tunnel before editing.")
+        Text("Saving will interrupt connections using this tunnel.")
           .font(.caption).foregroundStyle(.secondary)
       }
       VStack(alignment: .leading, spacing: 5) {
@@ -74,12 +74,13 @@ struct ConnectionEditor: View {
           Label("Add port", systemImage: "plus")
         }.buttonStyle(.borderless)
       }
-      .disabled(disabled)
+      .disabled(store.busy)
       Divider()
       HStack {
         if let id = draft.connectionID {
           Button("Delete", role: .destructive) { confirmingDelete = true }
-            .buttonStyle(.borderless).disabled(disabled)
+            .buttonStyle(.borderless).disabled(store.busy || active)
+            .help(active ? "Disconnect this tunnel before deleting it." : "Delete saved connection")
             .confirmationDialog("Delete \(draft.name)?", isPresented: $confirmingDelete) {
               Button("Delete connection", role: .destructive) { store.remove(id) }
             }
@@ -87,8 +88,10 @@ struct ConnectionEditor: View {
         Spacer()
         Button("Cancel") { store.closeEditor() }.keyboardShortcut(.cancelAction)
           .disabled(store.busy)
-        Button("Save") { store.save(draft) }.keyboardShortcut(.defaultAction)
-          .disabled(disabled || draft.host.isEmpty)
+        Button(active ? "Save and reconnect" : "Save") { store.save(draft) }.keyboardShortcut(
+          .defaultAction
+        )
+        .disabled(store.busy || draft.host.isEmpty)
       }
     }
   }
@@ -96,7 +99,6 @@ struct ConnectionEditor: View {
   private var active: Bool {
     draft.connectionID.flatMap { store.tunnel(for: $0) }?.isActive ?? false
   }
-  private var disabled: Bool { store.busy || active }
   private var hosts: [String] {
     Array(Set(store.hosts + (draft.host.isEmpty ? [] : [draft.host]))).sorted()
   }

@@ -22,11 +22,21 @@ struct NativeTests {
       try expect(store.connections[0].name == "Home lab")
       store.toggle(store.connections[0])
       try expect(backend.requests.contains("disconnect"))
+      let requestsBeforeEditing = backend.requests.count
       store.edit(store.connections[0])
       try expect(store.editor?.name == "Home lab")
+      try expect(backend.requests.count == requestsBeforeEditing)
+      store.closeEditor()
+      try expect(backend.requests.count == requestsBeforeEditing)
+      store.edit(store.connections[0])
+      var invalid = store.editor!
+      invalid.forwards[0].localPort = "0"
+      store.save(invalid)
+      try expect(backend.requests.count == requestsBeforeEditing && store.editor != nil)
       backend.failure = "Could not save"
       store.save(store.editor!)
       try expect(store.error == "Could not save" && store.editor != nil)
+      try expect(backend.requests.last == "saveAndReconnect")
       backend.failure = nil
       store.save(store.editor!)
       try expect(store.editor == nil)
@@ -34,6 +44,13 @@ struct NativeTests {
         Tunnel(connectionId: "lab", status: .failed, processId: nil, error: "Permission denied")
       ])
       try expect(store.tunnel(for: "lab")?.error == "Permission denied")
+      store.edit()
+      var newConnection = store.editor!
+      newConnection.name = "New connection"
+      newConnection.forwards[0].localPort = "8080"
+      newConnection.forwards[0].destinationPort = "3000"
+      store.save(newConnection)
+      try expect(backend.requests.last == "save")
       store.shutdown()
       try expect(backend.stopped)
     }

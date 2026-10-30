@@ -1,4 +1,4 @@
-final class Tunnels: ConnectionActivity {
+final class Tunnels: ConnectionRuntime {
   private let launcher: TunnelLauncher
   private var processes: [String: TunnelProcess] = [:]
   private var states: [String: Tunnel] = [:]

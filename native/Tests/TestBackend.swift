@@ -12,6 +12,7 @@ final class TestBackend: BackendClient {
     switch command {
     case .snapshot: requests.append("snapshot")
     case .save: requests.append("save")
+    case .saveAndReconnect: requests.append("saveAndReconnect")
     case .remove: requests.append("remove")
     case .connect: requests.append("connect")
     case .disconnect: requests.append("disconnect")
