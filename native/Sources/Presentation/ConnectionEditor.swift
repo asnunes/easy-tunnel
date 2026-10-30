@@ -4,6 +4,7 @@ struct ConnectionEditor: View {
   @ObservedObject var store: ConnectionStore
   @State private var draft: ConnectionDraft
   @State private var confirmingDelete = false
+  @State private var showingHostHelp = false
 
   init(store: ConnectionStore, draft: ConnectionDraft) {
     self.store = store
@@ -32,10 +33,26 @@ struct ConnectionEditor: View {
         VStack(alignment: .leading, spacing: 4) {
           HStack(spacing: 4) {
             Text("SSH host")
-            Image(systemName: "info.circle")
-              .help(sshHostHelp)
+            Button {
+              showingHostHelp = true
+            } label: {
+              Image(systemName: "info.circle")
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
+            }
+              .buttonStyle(.plain)
+              .onHover { hovering in
+                if hovering { showingHostHelp = true }
+              }
               .accessibilityLabel("About SSH hosts")
               .accessibilityHint(sshHostHelp)
+              .popover(isPresented: $showingHostHelp, arrowEdge: .bottom) {
+                Text(sshHostHelp)
+                  .font(.callout)
+                  .fixedSize(horizontal: false, vertical: true)
+                  .frame(width: 280, alignment: .leading)
+                  .padding(12)
+              }
           }
           .font(.caption).foregroundStyle(.secondary)
           Picker("SSH host", selection: $draft.host) {
