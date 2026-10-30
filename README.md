@@ -41,6 +41,17 @@ Or download manually:
 
 Requires **macOS 13 or later**. Published builds are ad-hoc signed and not notarized.
 
+### First launch
+
+If macOS says Apple could not verify Easy Tunnel, including after a Homebrew installation:
+
+1. Click **Done** in the alert.
+2. Open **System Settings → Privacy & Security**.
+3. Under **Security**, find the Easy Tunnel notice and click **Open Anyway**.
+4. Confirm that you want to open the app.
+
+This allows this app to open without disabling Gatekeeper. See [Apple’s instructions](https://support.apple.com/en-us/102445).
+
 ### Configure an SSH host
 
 Easy Tunnel reads named hosts from `~/.ssh/config`, including entries from `Include` files:
