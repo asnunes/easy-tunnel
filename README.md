@@ -24,6 +24,16 @@ Edit active connections with **Save and reconnect**. When something fails, read 
 
 ## Get started
 
+Install with [Homebrew](https://github.com/asnunes/homebrew-tap):
+
+```sh
+brew install --cask asnunes/tap/easy-tunnel
+```
+
+If Homebrew reports an untrusted tap, run `brew trust --cask asnunes/tap/easy-tunnel` and retry. Update with `brew update` followed by `brew upgrade --cask easy-tunnel`.
+
+Or download manually:
+
 1. Download the latest Apple Silicon build from [Releases](https://github.com/asnunes/easy-tunnel/releases/latest).
 2. Unzip it, move **Easy Tunnel.app** to Applications, and open it.
 3. Click its menu bar icon, select **Add connection**, and configure your ports.
