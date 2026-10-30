@@ -30,7 +30,14 @@ struct ConnectionEditor: View {
             .accessibilityLabel("Connection name")
         }
         VStack(alignment: .leading, spacing: 4) {
-          Text("SSH host").font(.caption).foregroundStyle(.secondary)
+          HStack(spacing: 4) {
+            Text("SSH host")
+            Image(systemName: "info.circle")
+              .help(sshHostHelp)
+              .accessibilityLabel("About SSH hosts")
+              .accessibilityHint(sshHostHelp)
+          }
+          .font(.caption).foregroundStyle(.secondary)
           Picker("SSH host", selection: $draft.host) {
             if hosts.isEmpty { Text("No hosts found").tag("") }
             ForEach(hosts, id: \.self) { Text($0).tag($0) }
@@ -99,6 +106,10 @@ struct ConnectionEditor: View {
         .disabled(store.busy || draft.host.isEmpty)
       }
     }
+  }
+
+  private var sshHostHelp: String {
+    "These hosts come from ~/.ssh/config. Add or edit a Host entry there to configure its server, user and SSH key, then refresh the host list in Easy Tunnel."
   }
 
   private var active: Bool {
