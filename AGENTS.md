@@ -8,7 +8,7 @@ This is a personal macOS SSH tunnel utility written entirely in Swift. Preserve 
 
 ## Architecture
 
-Use native SwiftUI/AppKit controls and materials. All application code lives in `native/Sources`.
+Use a declarative SwiftUI App and MenuBarExtra with native controls and system editing commands. Keep AppKit lifecycle integration limited to termination cleanup. All application code lives in `native/Sources`.
 
 Follow the Farol topology: `Connections` and `Tunnels` have `Domain`, `Application`, and `Infra`. Domain protocols belong in `Domain`. Value objects validate at construction and keep stored values private. Domain types do not conform to Codable; persistence records belong in infrastructure. Use cases expose `execute`.
 

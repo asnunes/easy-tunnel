@@ -4,11 +4,11 @@
 
 A native macOS menu bar app for SSH tunnels. Pick a host from `~/.ssh/config`, save any number of local port forwards, and turn the connection on or off.
 
-The panel uses an AppKit popover with SwiftUI controls, following the system appearance, materials, and keyboard behavior. The app is written entirely in Swift, including connection storage and SSH process management.
+The panel uses a declarative SwiftUI App and MenuBarExtra with native controls, following the system appearance, materials, and keyboard behavior. The app is written entirely in Swift, including connection storage and SSH process management.
 
 ## Use
 
-Open **Easy Tunnel.app**. Click its menu bar icon to show or hide the panel.
+Open **Easy Tunnel.app**. Click its menu bar icon to show or hide the panel. The app does not programmatically open the panel on launch or reopen.
 
 - **Add connection** selects an SSH host and its port mappings.
 - The switch starts or stops all mappings for that connection in one SSH process.
@@ -52,7 +52,7 @@ The project follows Farol's domain-oriented layout within one Swift application.
 
 ```text
 native/Sources/
-  EasyTunnelApp.swift     AppKit status item, popover, and lifecycle
+  EasyTunnelApp.swift     SwiftUI App, MenuBarExtra, and termination lifecycle
   Wiring.swift            Composition root
   Connections/
     Domain/               Connections, value objects, and repository protocols
