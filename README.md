@@ -18,9 +18,9 @@ Choose a host from `~/.ssh/config`, save multiple port forwards under one connec
 
 Edit active connections with **Save and reconnect**. When something fails, read a short explanation or open the SSH details. The interface uses native macOS controls and follows your system appearance.
 
-<img src="docs/images/connections.png" alt="Easy Tunnel panel with Home lab connected and Dev server disconnected" width="300">
+<img src="docs/images/connections.png" alt="Easy Tunnel open from the macOS menu bar, with a translucent panel showing Home lab connected and Dev server disconnected" width="480">
 
-<img src="docs/images/connection-editor.png" alt="Connection editor with an SSH host and two local port mappings" width="430">
+<img src="docs/images/connection-editor.png" alt="Native translucent connection editor below the macOS menu bar, with two port mappings" width="640">
 
 ## Get started
 
