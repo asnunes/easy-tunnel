@@ -38,7 +38,7 @@ Easy Tunnel reads named hosts from `~/.ssh/config`, including entries from `Incl
 ```sshconfig
 Host home-lab
     HostName 192.168.1.50
-    User alex
+    User your-user
     IdentityFile ~/.ssh/id_ed25519
 ```
 
