@@ -36,9 +36,7 @@ struct ConnectionRow: View {
       }
       .frame(minHeight: 28)
       if let error = tunnel?.error {
-        Text(error).font(.caption).foregroundStyle(.red)
-          .textSelection(.enabled).lineLimit(3)
-          .help(error)
+        TunnelErrorView(error: error)
       }
     }
   }

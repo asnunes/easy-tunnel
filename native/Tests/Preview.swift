@@ -6,13 +6,23 @@ struct Preview {
   static func main() {
     let app = NSApplication.shared
     app.setActivationPolicy(.prohibited)
-    let store = ConnectionStore(backend: TestBackend())
+    let backend = TestBackend()
+    let store = ConnectionStore(backend: backend)
     store.refresh()
     for (name, appearance) in [
       ("light", NSAppearance.Name.aqua), ("dark", NSAppearance.Name.darkAqua),
     ] {
       render(
         MenuPanel(store: store), appearance: appearance, path: "target/native-list-\(name).png")
+      let refusal = "channel 7: open failed: connect failed: Connection refused"
+      backend.subject.send([
+        Tunnel(
+          connectionId: "lab", status: .failed, processId: nil, error: "\(refusal)\n\(refusal)")
+      ])
+      render(
+        ConnectionList(store: store).controlSize(.small).padding(14).frame(width: 300),
+        appearance: appearance, path: "target/native-error-\(name).png")
+      store.refresh()
       store.edit(store.connections[0])
       render(
         MenuPanel(store: store), appearance: appearance, path: "target/native-editor-\(name).png")

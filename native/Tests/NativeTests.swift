@@ -8,6 +8,7 @@ struct NativeTests {
     try SSHConfigTests.run()
     try ApplicationTests.run()
     try presentationFlow()
+    try TunnelErrorMessageTests.run()
     try OpenSSHTests.run()
     print("All Swift tests passed.")
   }
